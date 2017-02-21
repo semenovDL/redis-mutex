@@ -8,6 +8,8 @@ class RedisMutex < RedisClassy
   #            It is recommended that you do NOT go below 0.01. (default: 0.1)
   # :expire => Specify in seconds when the lock should forcibly be removed when something went wrong
   #            with the one who held the lock. (default: 10)
+  # :inline => Specify skipping lock if current process already hold it.
+  #            (default: false)
   #
   autoload :Macro, 'redis_mutex/macro'
 
@@ -21,6 +23,7 @@ class RedisMutex < RedisClassy
     @block = options[:block] || 1
     @sleep = options[:sleep] || 0.1
     @expire = options[:expire] || DEFAULT_EXPIRE
+    @inline = options[:inline] || false
   end
 
   def lock
@@ -75,10 +78,13 @@ class RedisMutex < RedisClassy
   end
 
   def with_lock
+    return yield if @inline && RedisMutex.in_current_process?(key)
     if lock!
       begin
+        RedisMutex.bind_key_to_process(key) if @inline
         @result = yield
       ensure
+        RedisMutex.unbind_key_from_process(key) if @inline
         unlock
       end
     end
@@ -127,6 +133,22 @@ class RedisMutex < RedisClassy
 
     def raise_assertion_error
       raise AssertionError, 'block syntax has been removed from #lock, use #with_lock instead'
+    end
+
+    def bindings
+      @bindings ||= {}
+    end
+
+    def bind_key_to_process(key)
+      bindings[key] = Process.pid
+    end
+
+    def unbind_key_from_process(key)
+      bindings.delete(key)
+    end
+
+    def in_current_process?(key)
+      bindings[key] == Process.pid
     end
   end
 end

@@ -150,6 +150,24 @@ describe RedisMutex do
     expect(RedisMutex.keys.size).to eq(1)
   end
 
+  it 'allow nested lock if :inline is passed' do
+    expect {
+      RedisMutex.with_lock(:test_lock, inline: true) do
+        RedisMutex.with_lock(:test_lock, inline: true) do
+        end
+      end
+    }.to_not raise_error
+  end
+
+  it 'raise error if try to acquire nested lock without :inline' do
+    expect {
+      RedisMutex.with_lock(:test_lock) do
+        RedisMutex.with_lock(:test_lock) do
+        end
+      end
+    }.to raise_error(RedisMutex::LockError)
+  end
+
   describe 'stress test' do
     LOOP_NUM = 1000
 
