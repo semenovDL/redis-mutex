@@ -40,6 +40,28 @@ Or if you want to immediately receive `false` on an unsuccessful locking attempt
 Changelog
 ---------
 
+### v.4.1
+
+* Allow to skip lock if current process already hold it:
+```
+class User::AddToCart
+  def self.call(user:, product:)
+    RedixMutex.with_lock(user, inline: true) do
+      cart = user.cart || Cart::Create.call(user: user)
+      card.items.create(product: product)
+    end
+  end
+end
+
+class Cart::Create
+  def self.call(user:)
+    RedixMutex.with_lock(user, inline: true) do
+      Cart.create(user: user)
+    end
+  end
+end
+```
+
 ### v4.0
 
 `redis-mutex` 4.0 has brought a few backward incompatible changes to follow the major upgrade of the underlying `redis-classy` gem.
@@ -110,7 +132,7 @@ The initialize method takes several options.
                  # It is NOT recommended to go below 0.01. (default: 0.1)
 :expire => 10    # Specify in seconds when the lock should be considered stale when something went wrong
                  # with the one who held the lock and failed to unlock. (default: 10)
-:inline => false # Specify skipping lock if current process already hold it.
+:inline => false # Allow to skip lock if current process already hold it.
                  # (default: false)
 ```
 

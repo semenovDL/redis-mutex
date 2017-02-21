@@ -8,7 +8,7 @@ class RedisMutex < RedisClassy
   #            It is recommended that you do NOT go below 0.01. (default: 0.1)
   # :expire => Specify in seconds when the lock should forcibly be removed when something went wrong
   #            with the one who held the lock. (default: 10)
-  # :inline => Specify skipping lock if current process already hold it.
+  # :inline => Allow to skip lock if current process already hold it.
   #            (default: false)
   #
   autoload :Macro, 'redis_mutex/macro'
